@@ -4,14 +4,10 @@
 // and in the cases' order. Outside a container, MAKEFUN_INPUT_DIR and
 // MAKEFUN_OUTPUT_DIR stand in for /input and /output.
 //
-// Two measured choices shape this driver (both won head-to-head benchmarks on
+// One measured choice shapes this driver (it won head-to-head benchmarks on
 // the practice set, fresh process per run, as the heat runs):
 //
-//   1. V8 flags: incremental marking off, single-threaded. The entry allocates
-//      millions of short-lived strings per case; incremental marking's write
-//      barriers cost more than they save here, and on one CPU the background
-//      compiler thread only steals time from the work itself.
-//   2. A JIT warm-up before the real cases. Each heat run is a fresh process,
+//   A JIT warm-up before the real cases. Each heat run is a fresh process,
 //      and run() is called only six times per process — too few for the
 //      optimizing compiler to learn the code before the timed work is done.
 //      Parsing a small branch-complete set of synthetic inputs first (every
@@ -19,14 +15,14 @@
 //      compiler optimize run() up front. The warm-up inputs are synthetic,
 //      their answers are discarded, and every case is still answered alone by
 //      a fresh run() call — nothing is cached from one case to the next.
+//
+// NOTE: V8 flag tuning via setFlagsFromString was REMOVED from this driver.
+// Calling it with --no-incremental-marking --single-threaded fatally crashes
+// the Node 22 grader (exit 133, SIGTRAP — a V8 fatal CHECK on post-init
+// flag changes), even though Node 24 tolerates the call. Do not re-add it.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { setFlagsFromString } from 'node:v8';
-
-// V8 tuning, applied before solve.js is imported so all of its work runs
-// under it.
-setFlagsFromString('--no-incremental-marking --single-threaded');
 
 type Solver = { run: (input: unknown) => unknown };
 const { run } = (await import(new URL('./solve.js', import.meta.url).href)) as Solver;
